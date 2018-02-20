@@ -27,8 +27,8 @@ export async function getAllGoals(db) {
       g.current_value :
       isNaN(g.current_value) || g.current_value === "" ? 0 : parseInt(g.current_value, 10),
     maxValue: isNaN(g.max_value) || g.max_value === "" ? 0 : parseInt(g.max_value, 10),
-    date1: g.date1 === undefined ? undefined : new Date(g.date1),
-    date2: g.date2 === undefined ? undefined : new Date(g.date2),
+    date1: isNaN(Date.parse(g.date1)) ? undefined : new Date(g.date1),
+    date2: isNaN(Date.parse(g.date1)) ? undefined : new Date(g.date2),
   }))
 }
 

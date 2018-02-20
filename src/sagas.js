@@ -36,13 +36,13 @@ function* fetchData(action) {
       }
     })
     
-    categories.forEach(category => {
-      category.completeness = () => category.goals.reduce((acc, sG) => acc + goalMapIds[sG].completeness(), 0) / Math.max(1, category.goals.length)
+    categories.forEach(c => {
+      c.completeness = (category) => category.goals.reduce((acc, sG) => acc + goalMapIds[sG].completeness(goalMapIds[sG]), 0) / Math.max(1, category.goals.length)
     })
-    goals.forEach(goal => {
-      goal.completeness = () => {
+    goals.forEach(g => {
+      g.completeness = (goal) => {
         if (goal.type === "group") {
-          return goal.subGoals.reduce((acc, sG) => acc + goalMapIds[sG].completeness(), 0) / Math.max(goal.subGoals.length, 1)
+          return goal.subGoals.reduce((acc, sG) => acc + goalMapIds[sG].completeness(goalMapIds[sG]), 0) / Math.max(goal.subGoals.length, 1)
         }
         if (goal.type === "boolean") {
           return goal.currentValue === "on" ? 100 : 0
@@ -58,6 +58,7 @@ function* fetchData(action) {
             goal.maxValue === 0 ? 100 : Math.round(100 * parseInt(goal.currentValue, 10) / parseInt(goal.maxValue, 10))
         }
         if (goal.type === "percentage") {
+          console.log(goal)
           return  goal.currentValue === undefined ?
             0 :
             parseInt(goal.currentValue, 10)
@@ -72,7 +73,7 @@ function* fetchData(action) {
       }
     })
     
-    const sortR = goals => goals.sort((g1, g2) => goalMapIds[g1].completeness() - goalMapIds[g2].completeness()).forEach(g => goalMapIds[g].subGoals.length <= 0 || sortR(goalMapIds[g].subGoals))
+    const sortR = goals => goals.sort((g1, g2) => goalMapIds[g1].completeness(goalMapIds[g1]) - goalMapIds[g2].completeness(goalMapIds[g2])).forEach(g => goalMapIds[g].subGoals.length <= 0 || sortR(goalMapIds[g].subGoals))
     categories.forEach(c => sortR(c.goals))
     
     yield put({ type: actions.FETCH_DATA_SUCCEEDED, categories, goals: goalMapIds })
@@ -84,23 +85,28 @@ function* fetchData(action) {
 }
 
 function* getCredentials(action) {
-  db = GES(
-    localStorage.getItem("ghUsername"), 
-    localStorage.getItem("ghPassword"), 
-    localStorage.getItem("repoName")
-  )("GoalKeepr", localStorage.getItem("passphrase"))
-  
-  yield put({ 
-    type: actions.RETURN_CREDENTIALS, 
-    credentials: {
-      ghUsername: localStorage.getItem("ghUsername"),
-      ghPassword: localStorage.getItem("ghPassword"),
-      repoName: localStorage.getItem("repoName"),
-      passphrase: localStorage.getItem("passphrase"),
-    },
-  })
-  
-  yield put({ type: actions.FETCH_DATA_REQUESTED })
+  try {
+    db = GES(
+      localStorage.getItem("ghUsername"), 
+      localStorage.getItem("ghPassword"), 
+      localStorage.getItem("repoName")
+    )("GoalKeepr", localStorage.getItem("passphrase"))
+
+    yield put({ 
+      type: actions.RETURN_CREDENTIALS, 
+      credentials: {
+        ghUsername: localStorage.getItem("ghUsername"),
+        ghPassword: localStorage.getItem("ghPassword"),
+        repoName: localStorage.getItem("repoName"),
+        passphrase: localStorage.getItem("passphrase"),
+      },
+    })
+
+    yield put({ type: actions.FETCH_DATA_REQUESTED })
+  } catch (err) {
+    console.log(err)
+    console.log(err.stack)
+  }
 }
 
 function* saveCredentials(action) {

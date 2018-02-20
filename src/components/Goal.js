@@ -18,8 +18,8 @@ import Dialog, {
   DialogTitle,
 } from 'material-ui/Dialog'
 import {
-  FormControlLabel,
-} from 'material-ui/Form';
+  FormControl, FormControlLabel, FormHelperText
+} from 'material-ui/Form'
 
 const styles = theme => ({
   button: {
@@ -44,104 +44,285 @@ class Goal extends Component {
       onDeleteGoal,
     } = this.props
     
-    const baseEls = goal => [
-      <Typography key={ 0 }>{ goal.name }</Typography>,
-      <Typography key={ 1 }>
-        <IconButton className={classes.button} aria-label="Delete" onClick={ onEditGoal(goal.id) }>
-          <EditIcon />
-        </IconButton>
-        <IconButton className={classes.button} aria-label="Delete" onClick={ onDeleteGoal(goal.id) }>
-          <DeleteIcon />
-        </IconButton>
-      </Typography>,
-    ]
-    
-    if (goal.type === "boolean") {
-      return [
-        ...baseEls(goal),
-        <Typography key={ "b1" } style={{ flex: 1, textAlign: "right" }}>
-          { goal.currentValue === "on" ?
-            <DoneIcon color="primary"/> :
-            <ProgressIcon color="secondary"/> }
-        </Typography>,
-        <Dialog
-          key={ "b2" }
-          open={ editGoal === goal.id }
-          onClose={ onCloseEditGoal }
-          aria-labelledby="form-dialog-title"
-        >
-          <DialogTitle id="form-dialog-title">Edit Boolean Goal</DialogTitle>
-          <DialogContent>
-            <TextField autoFocus margin="normal" id="name" label="Goal Name" type="text" value={ goal.name } onChange={ event => onEditGoalField( goal.id )("name")(event.target.value) } fullWidth />
-            <FormControlLabel
-              control={ <Switch checked={ goal.currentValue === "on" } onChange={ event => onEditGoalField( goal.id )("currentValue")(event.target.checked ? "on" : null) } value="done" /> }
-              label="Done?" />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={ onCloseEditGoal } color="primary">
-              Cancel
-            </Button>
-            <Button onClick={ onSaveGoal(goal) } color="primary">
-              Save Changes
-            </Button>
-          </DialogActions>
-        </Dialog>
-      ]
-    } else if (goal.type === "cd") {
-      return [
-        ...baseEls(goal),
-        <div key={ "cd1" } style={{ flex: 1, margin: "8px 20px" }}>
-          <LinearProgress variant="determinate" value={ goal.completeness() } />
-        </div>,
-        <Typography key={ "cd2" }>
-          { goal.completeness() >= 100 ?
-            <DoneIcon color="primary"/> :
-            `${ goal.maxValue - Math.floor((Date.now() - goal.date1.getTime()) / (goal.maxValue * 24 * 60 * 60 * 1000)) } days remaining (${ goal.completeness().toFixed(1) }%)` }
-        </Typography>,
-      ]
-    } else if (goal.type === "cumulative") {
-      return [
-        ...baseEls(goal),
-        <div key={ "c1" } style={{ flex: 1, margin: "8px 20px" }}>
-          <LinearProgress variant="determinate" value={ goal.completeness() } />
-        </div>,
-        <Typography key={ "c2" }>{ `${ goal.currentValue }/${ goal.maxValue } (${ goal.completeness().toFixed(1) }%)` }</Typography>
-      ]
-    } else if (goal.type === "percentage") {
-      return [
-        ...baseEls(goal),
-        <div key={ "p1" } style={{ flex: 1, margin: "8px 20px" }}>
-          <LinearProgress variant="determinate" value={ goal.completeness() } />
-        </div>,
-        <Typography key={ "p2" }>{ `${ goal.completeness().toFixed(1) }%` }</Typography>
-      ]
-    } else if (goal.type === "revcd") {
-      return [
-        ...baseEls(goal),
-        <Typography key={ "r1" } style={{ flex: 1, textAlign: "right" }}>
-          { goal.completeness() >= 100 ?
-            [
-              `${ goal.maxValue - Math.floor((Date.now() - goal.date1.getTime()) / (goal.maxValue * 24 * 60 * 60 * 1000)) } days remaining`,
-              <DoneIcon color="primary"/>
-            ] :
-            `${ goal.maxValue - Math.floor((Date.now() - goal.date1.getTime()) / (goal.maxValue * 24 * 60 * 60 * 1000)) } days over deadline` }
-        </Typography>,
-      ]
-    } else {
-      console.error("Warning: Unknown goal type", goal)
-      return [
-        <Typography key={ "u1" } className={ classes.heading }>{ goal.name }</Typography>,
-        <Typography key={ "u2" } className={ classes.heading }>
-          <IconButton className={classes.button} aria-label="Delete">
+    return (
+      <div style={{ display: "flex", flex: 1 }}>
+        <Typography>{ goal.name }</Typography>
+        <Typography>
+          <IconButton className={classes.button} aria-label="Delete" onClick={ onEditGoal(goal.id) }>
             <EditIcon />
           </IconButton>
-          <IconButton className={classes.button} aria-label="Delete">
+          <IconButton className={classes.button} aria-label="Delete" onClick={ onDeleteGoal(goal.id) }>
             <DeleteIcon />
           </IconButton>
-        </Typography>,
-        <pre key={ "u3" }>{ JSON.stringify(goal, undefined, 4) }</pre>
-      ]
-    }
+        </Typography>
+       
+        { (goal.type === "boolean") ?
+          <div style={{ display: "flex", flex: 1 }}>
+            <Typography style={{ flex: 1, textAlign: "right" }}>
+              { goal.currentValue === "on" ?
+                <DoneIcon color="primary"/> :
+                <ProgressIcon color="secondary"/> }
+            </Typography>
+            <Dialog
+              open={ editGoal === goal.id }
+              onClose={ onCloseEditGoal }
+              aria-labelledby="form-dialog-title">
+              <DialogTitle id="form-dialog-title">Edit Boolean Goal</DialogTitle>
+              <DialogContent>
+                <FormControl fullWidth>
+                  <TextField autoFocus id="name" label="Goal Name" type="text" value={ goal.name } onChange={ event => onEditGoalField( goal.id )("name")(event.target.value) } />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField
+                    label="Deadline"
+                    type="date"
+                    value={ goal.date1 ? goal.date1.toISOString().substring(0, 10) : "" }
+                    onChange={ event => onEditGoalField(goal.id)("date1")(new Date(event.target.value)) }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <FormControlLabel
+                    control={ <Switch checked={ goal.currentValue === "on" } onChange={ event => onEditGoalField( goal.id )("currentValue")(event.target.checked ? "on" : null) } value="done" /> }
+                    label="Done?" />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <pre>{ JSON.stringify(goal, null, 4) }</pre>
+                </FormControl>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={ onCloseEditGoal } color="primary">
+                  Cancel
+                </Button>
+                <Button onClick={ onSaveGoal(goal) } color="primary">
+                  Save Changes
+                </Button>
+              </DialogActions>
+            </Dialog> 
+          </div> :
+                               
+        (goal.type === "cd") ?
+          <div style={{ display: "flex", flex: 1 }}>
+            <div style={{ flex: 1, margin: "8px 20px" }}>
+              <LinearProgress variant="determinate" value={ goal.completeness(goal) } />
+            </div>
+            <Typography>
+              { goal.completeness(goal) >= 100 ?
+                <DoneIcon color="primary"/> :
+                `${ goal.maxValue - Math.floor((Date.now() - goal.date1.getTime()) / (goal.maxValue * 24 * 60 * 60 * 1000)) } days remaining (${ goal.completeness(goal).toFixed(1) }%)` }
+            </Typography>
+            <Dialog
+              open={ editGoal === goal.id }
+              onClose={ onCloseEditGoal }
+              aria-labelledby="form-dialog-title">
+              <DialogTitle id="form-dialog-title">Edit Countdown Goal</DialogTitle>
+              <DialogContent>
+                <FormControl fullWidth>
+                  <TextField autoFocus label="Goal Name" type="text" value={ goal.name } onChange={ event => onEditGoalField( goal.id )("name")(event.target.value) } fullWidth />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField
+                    label="Start Date"
+                    type="date"
+                    value={ goal.date1 ? goal.date1.toISOString().substring(0, 10) : "" }
+                    onChange={ event => onEditGoalField(goal.id)("date1")(new Date(event.target.value)) }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField label="Countdown Days" type="number" value={ goal.maxValue } onChange={ event => onEditGoalField( goal.id )("maxValue")(event.target.value) } />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <pre>{ JSON.stringify(goal, null, 4) }</pre>
+                </FormControl>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={ onCloseEditGoal } color="primary">
+                  Cancel
+                </Button>
+                <Button onClick={ onSaveGoal(goal) } color="primary">
+                  Save Changes
+                </Button>
+              </DialogActions>
+            </Dialog> 
+          </div> :
+
+        (goal.type === "cumulative") ?
+          <div style={{ display: "flex", flex: 1 }}>
+            <div style={{ flex: 1, margin: "8px 20px" }}>
+              <LinearProgress variant="determinate" value={ goal.completeness(goal) } />
+            </div>
+            <Typography>
+              { `${ goal.currentValue }/${ goal.maxValue } (${ goal.completeness(goal).toFixed(1) }%)` }
+            </Typography>
+            <Dialog
+              open={ editGoal === goal.id }
+              onClose={ onCloseEditGoal }
+              aria-labelledby="form-dialog-title">
+              <DialogTitle id="form-dialog-title">Edit Cumulative Goal</DialogTitle>
+              <DialogContent>
+                <FormControl fullWidth>
+                  <TextField autoFocus label="Goal Name" type="text" value={ goal.name } onChange={ event => onEditGoalField( goal.id )("name")(event.target.value) } fullWidth />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField label="Goal Value" type="number" value={ goal.maxValue } onChange={ event => onEditGoalField( goal.id )("maxValue")(event.target.value) } />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField
+                    label="Deadline"
+                    type="date"
+                    value={ goal.date1 ? goal.date1.toISOString().substring(0, 10) : "" }
+                    onChange={ event => onEditGoalField(goal.id)("date1")(new Date(event.target.value)) }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField label="Current Value" type="number" value={ goal.currentValue } onChange={ event => onEditGoalField( goal.id )("currentValue")(event.target.value) } />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <pre>{ JSON.stringify(goal, null, 4) }</pre>
+                </FormControl>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={ onCloseEditGoal } color="primary">
+                  Cancel
+                </Button>
+                <Button onClick={ onSaveGoal(goal) } color="primary">
+                  Save Changes
+                </Button>
+              </DialogActions>
+            </Dialog> 
+          </div> :
+      
+        (goal.type === "percentage") ?
+          <div style={{ display: "flex", flex: 1 }}>
+            <div style={{ flex: 1, margin: "8px 20px" }}>
+              <LinearProgress variant="determinate" value={ goal.completeness(goal) } />
+            </div>
+            <Typography>{ `${ goal.completeness(goal).toFixed(1) }%` }</Typography>
+            <Dialog
+              open={ editGoal === goal.id }
+              onClose={ onCloseEditGoal }
+              aria-labelledby="form-dialog-title">
+              <DialogTitle id="form-dialog-title">Edit Percentage Goal</DialogTitle>
+              <DialogContent>
+                <FormControl fullWidth>
+                  <TextField autoFocus label="Goal Name" type="text" value={ goal.name } onChange={ event => onEditGoalField( goal.id )("name")(event.target.value) } fullWidth />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField
+                    label="Deadline"
+                    type="date"
+                    value={ goal.date1 ? goal.date1.toISOString().substring(0, 10) : "" }
+                    onChange={ event => onEditGoalField(goal.id)("date1")(new Date(event.target.value)) }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField label="Current Value" type="number" value={ goal.currentValue } onChange={ event => onEditGoalField( goal.id )("currentValue")(Math.min(100, Math.max(0, event.target.value))) } />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <pre>{ JSON.stringify(goal, null, 4) }</pre>
+                </FormControl>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={ onCloseEditGoal } color="primary">
+                  Cancel
+                </Button>
+                <Button onClick={ onSaveGoal(goal) } color="primary">
+                  Save Changes
+                </Button>
+              </DialogActions>
+            </Dialog> 
+          </div> :
+      
+        (goal.type === "revcd") ?
+          <div style={{ display: "flex", flex: 1 }}>
+            <Typography style={{ flex: 1, textAlign: "right" }}>
+              { goal.completeness(goal) >= 100 ?
+                [
+                  `${ goal.maxValue - Math.floor((Date.now() - goal.date1.getTime()) / (goal.maxValue * 24 * 60 * 60 * 1000)) } days remaining`,
+                  <DoneIcon key={ 0 }color="primary"/>
+                ] :
+                `${ goal.maxValue - Math.floor((Date.now() - goal.date1.getTime()) / (goal.maxValue * 24 * 60 * 60 * 1000)) } days over deadline` }
+            </Typography>
+            <Dialog
+              open={ editGoal === goal.id }
+              onClose={ onCloseEditGoal }
+              aria-labelledby="form-dialog-title"
+            >
+              <DialogTitle id="form-dialog-title">Edit Reverse Countdown Goal</DialogTitle>
+              <DialogContent>
+                <FormControl fullWidth>
+                  <TextField autoFocus label="Goal Name" type="text" value={ goal.name } onChange={ event => onEditGoalField( goal.id )("name")(event.target.value) } fullWidth />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField
+                    label="Last Completion Date"
+                    type="date"
+                    value={ goal.date1 ? goal.date1.toISOString().substring(0, 10) : "" }
+                    onChange={ event => isNaN(Date.parse(event.target.value)) || onEditGoalField(goal.id)("date1")(new Date(event.target.value)) }
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <TextField label="Cooldown Days" type="number" value={ goal.maxValue } onChange={ event => onEditGoalField( goal.id )("maxValue")(event.target.value) } />
+                  <FormHelperText></FormHelperText>
+                </FormControl>
+                <FormControl fullWidth>
+                  <pre>{ JSON.stringify(goal, null, 4) }</pre>
+                </FormControl>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={ onCloseEditGoal } color="primary">
+                  Cancel
+                </Button>
+                <Button onClick={ onSaveGoal(goal) } color="primary">
+                  Save Changes
+                </Button>
+              </DialogActions>
+            </Dialog> 
+          </div> :
+     
+          <div style={{ display: "flex", flex: 1 }}>
+            <Typography key={ "u1" } className={ classes.heading }>{ goal.name }</Typography>
+            <Typography key={ "u2" } className={ classes.heading }>
+              <IconButton className={classes.button} aria-label="Delete">
+                <EditIcon />
+              </IconButton>
+              <IconButton className={classes.button} aria-label="Delete">
+                <DeleteIcon />
+              </IconButton>
+            </Typography>
+            <pre key={ "u3" }>{ JSON.stringify(goal, undefined, 4) }</pre> 
+          </div> }
+      </div>
+    )
   }
   
 }

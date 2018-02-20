@@ -63,9 +63,9 @@ class CategoryList extends Component {
                   </IconButton>
                 </Typography>
                 <div style={{ flex: 1, margin: "8px 20px" }}>
-                  <LinearProgress variant="determinate" value={ category.completeness() } />
+                  <LinearProgress variant="determinate" value={ category.completeness(category) } />
                 </div>
-                <Typography>{ `${ category.completeness().toFixed(1) }%` }</Typography>
+                <Typography>{ `${ category.completeness(category).toFixed(1) }%` }</Typography>
               </ExpansionPanelSummary>
               <ExpansionPanelDetails>
                 <GoalList { ...this.props } goals={ category.goals } />
